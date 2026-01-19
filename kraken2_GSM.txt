@@ -1,0 +1,46 @@
+#!/bin/bash
+#SBATCH --time=159:59:00
+#SBATCH --mem=100gb
+#SBATCH --ntasks-per-node=5
+#SBATCH --cpus-per-task=5 
+#SBATCH --mail-user=chenkai.ma@csiro.au    
+#SBATCH --account=OD-227568
+
+module load fastqc/0.11.9
+module load trimgalore/0.6.6
+module load samtools/1.12
+module load picard/2.25.5
+module load python/3.9.4
+module load star/2.7.9a
+module load subread/2.0.3
+
+kraken2_db=/datasets/work/hb-diab-cfdna/work/Data/annotation/kraken2_db
+
+kraken2=/datasets/work/hb-exvivotcell/work/Data/packages/kraken2/kraken2
+bracken=/datasets/work/hb-exvivotcell/work/Data/packages/kraken2/bracken
+ktImportTaxonomy=/datasets/work/hb-exvivotcell/work/Data/packages/kraken2/ktImportTaxonomy
+
+
+
+cd ${SLURM_SUBMIT_DIR}
+
+mkdir kraken2_GSM
+cd ./kraken2_GSM
+#cat ../list_GSM_1 | while read id  ; do STAR --runMode alignReads --runThreadN 24 --genomeDir  /datasets/work/lw-project-airway/work/Data/genome_ref/STAR_index/h1n1 --readFilesCommand zcat --readFilesIn ../trim_GSM/${id}_1_val_1.fq.gz  ../trim_GSM/${id}_1_val_1.fq.gz --outSAMtype BAM SortedByCoordinate --outFileNamePrefix ${id} ; done       
+
+#$kraken2 --db $kraken2_db --paired ../alignment_GSM_hg38/SRR22283222_GSM6730791_Whole_blood_healthy_control_rep_1_Homo_sapiens_RNA-SeqUnmapped.out.mate1 ../alignment_GSM_hg38/SRR22283222_GSM6730791_Whole_blood_healthy_control_rep_1_Homo_sapiens_RNA-SeqUnmapped.out.mate2  --report SRR22283222_GSM6730791_Whole_blood_healthy_control_rep_1_Homo_sapiens_RNA-Seq_unmapped.report.txt --output SRR22283222_GSM6730791_Whole_blood_healthy_control_rep_1_Homo_sapiens_RNA-Seq_unmapped.kraken.txt --confidence 0.1 
+
+cat ../list_GSM_2 | while read id  ; do $kraken2 --db $kraken2_db \
+        --paired ../alignment_GSM_hg38/${id}Unmapped.out.mate1 ../alignment_GSM_hg38/${id}Unmapped.out.mate2 \
+        --report ${id}_unmapped.report.txt \
+        --output ${id}_unmapped.kraken.txt \
+		--confidence 0.1 \
+        --threads 24  ; done
+
+#cat ../list_GSM_1 | while read id  ; do $bracken -d $kraken2_db -i ${id}_unmapped.report.txt -o ${id}_unmapped.bracken.txt \-r 100 -l S ; done
+
+#cut -f 2,3 SRR22283488_unmapped.kraken.txt > krona_input.txt
+#$ktImportTaxonomy krona_input.txt -o SRR22283488_unmapped_krona_output.html
+
+cat ../list_GSM_1 | while read id  ; do head -n 4000 ${id}_unmapped.report.txt > ${id}_unmapped.report.tsv ; done
+

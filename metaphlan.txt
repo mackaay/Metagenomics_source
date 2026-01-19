@@ -1,0 +1,35 @@
+#!/bin/bash
+#SBATCH --time=23:59:00
+#SBATCH --mem=50gb
+#SBATCH --ntasks-per-node=4
+#SBATCH --cpus-per-task=4     
+#SBATCH --mail-user=chenkai.ma@csiro.au
+#SBATCH --account=OD-227568
+
+module load fastqc/0.11.9
+module load trimgalore/0.6.6
+module load samtools/1.12
+module load picard/2.25.5
+module load python/3.9.4
+module load star/2.7.9a
+module load subread/2.0.3
+module load metaphlan/4.0.6
+
+
+
+
+cd ${SLURM_SUBMIT_DIR}
+
+STAR --runMode alignReads --runThreadN 16 --genomeDir  /datasets/work/hb-diab-cfdna/work/Data/annotation/index/star/hg38 --readFilesCommand zcat --readFilesIn ../trim_GSM/SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-Seq_1_val_1.fq.gz  ../trim_GSM/SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-Seq_2_val_2.fq.gz --outSAMtype BAM SortedByCoordinate --outFileNamePrefix SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-Seq --outReadsUnmapped Fastx
+
+cd /scratch3/ma032/COVID_WIMR/COVID_blood/metaphlan_test
+rsync /scratch3/ma032/COVID_WIMR/COVID_blood/alignment_GSM_hg38/*.mate* ./
+mv SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-SeqUnmapped.out.mate1 SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-SeqUnmapped_1.fastq
+mv SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-SeqUnmapped.out.mate2 SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-SeqUnmapped_2.fastq
+
+metaphlan SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-SeqUnmapped_1.fastq,SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-SeqUnmapped_2.fastq \
+--input_type fastq --nproc 15  --bowtie2out SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA.bowtie2.bz2 -o SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA.txt
+#cat list_GSM1 | while read id ; do trim_galore  ./fastq/${id}_1.fastq.gz ./fastq/${id}_2.fastq.gz --paired -q 20 --cores 8 --length 50 -e 0.1 --stringency 5 -o ./trim_GSM/ --fastqc ; done
+
+
+

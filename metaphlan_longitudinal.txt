@@ -1,0 +1,37 @@
+#!/bin/bash
+#SBATCH --time=143:59:00
+#SBATCH --mem=50gb
+#SBATCH --ntasks-per-node=4
+#SBATCH --cpus-per-task=4     
+#SBATCH --mail-user=chenkai.ma@csiro.au
+#SBATCH --account=OD-227568
+
+module load fastqc/0.11.9
+module load trimgalore/0.6.6
+module load samtools/1.12
+module load picard/2.25.5
+module load python/3.9.4
+module load star/2.7.9a
+module load subread/2.0.3
+module load metaphlan/4.0.6
+
+
+
+
+cd ${SLURM_SUBMIT_DIR}
+
+#mkdir metaphlan_longitudinal
+cd metaphlan_longitudinal
+
+#cat ../list_longitudinal_1 | while read id  ; do rsync -avz ../alignment_longitudinal_hg38/${id}Unmapped.out.mate* ./ ; done 
+
+#mv SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-SeqUnmapped.out.mate1 SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-SeqUnmapped_1.fastq
+#mv SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-SeqUnmapped.out.mate2 SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-SeqUnmapped_2.fastq
+
+cat ../list_longitudinal_1 | while read id  ; do metaphlan ${id}Unmapped.out.mate1,${id}Unmapped.out.mate2 --input_type fastq --nproc 15  --bowtie2out ${id}.bowtie2.bz2 -o ${id}.txt ; done 
+
+#metaphlan SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-SeqUnmapped_1.fastq,SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA-SeqUnmapped_2.fastq \
+#--input_type fastq --nproc 15  --bowtie2out SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA.bowtie2.bz2 -o SRR22283293_GSM6730862_Whole_blood_COVID_positive_rep_1_Homo_sapiens_RNA.txt
+
+
+

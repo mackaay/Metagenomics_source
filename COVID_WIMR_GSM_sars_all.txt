@@ -1,0 +1,47 @@
+#!/bin/bash
+#SBATCH --time=143:59:00
+#SBATCH --mem=70gb
+#SBATCH --ntasks-per-node=5
+#SBATCH --cpus-per-task=5     
+#SBATCH --mail-user=chenkai.ma@csiro.au
+#SBATCH --account=OD-227568
+
+module load fastqc/0.11.9
+module load trimgalore/0.6.6
+module load samtools/1.12
+module load picard/2.25.5
+module load python/3.9.4
+module load star/2.7.9a
+module load subread/2.0.3
+
+cd ${SLURM_SUBMIT_DIR}
+
+#trim-galore
+#mkdir trim_GSM 
+#cat list_GSM | while read id ; do trim_galore  ./fastq/${id}_1.fastq.gz ./fastq/${id}_2.fastq.gz --paired -q 20 --cores 18 --length 50 -e 0.1 --stringency 5 -o ./trim_GSM/ --fastqc ; done
+
+
+
+
+cd ${SLURM_SUBMIT_DIR}
+
+mkdir alignment_GSM_sars2
+cd ./alignment_GSM_sars2
+cat ../list_GSM | while read id  ; do STAR --runMode alignReads --runThreadN 24 --genomeDir  /datasets/work/lw-project-airway/work/Data/genome_ref/STAR_index/sars_cov_2 --readFilesCommand zcat --readFilesIn ../trim_GSM/${id}_1_val_1.fq.gz  ../trim_GSM/${id}_2_val_2.fq.gz --outSAMtype BAM SortedByCoordinate --outFileNamePrefix ${id} ; done       
+
+#index
+cat ../list_GSM | while read id ; do samtools index -@ 24 ${id}Aligned.sortedByCoord.out.bam ; done
+
+#sort bam by name for featureCounts
+cat ../list_GSM  | while read id ; do samtools sort -n -@ 24 -O bam  -o ./${id}_s.bam ./${id}Aligned.sortedByCoord.out.bam ; done
+
+cd ../
+#featureCounts -T 16 -p -C -B -a /datasets/work/lw-project-airway/work/Data/genome_ref/STAR_index/sars_cov_2_allreads/Sars_cov_2.ASM985889v3.101.gtf -t gene -g gene_id -o gene_id_sars.txt ./alignment/*_s.bam
+featureCounts -T 24 -p  -a /datasets/work/lw-project-airway/work/Data/genome_ref/STAR_index/sars_cov_2/Sars_cov_2.ASM985889v3.101.gtf -t exon -g gene_id -o PREDICT_sars2_gene_id_exon.txt ./alignment_GSM_sars2/*_s.bam
+#featureCounts -T 24 -p -B --countReadPairs -a /datasets/work/lw-project-airway/work/Data/genome_ref/STAR_index/sars_cov_2_allreads/sars_cov_2_allreads.gtf -t CDS -g gene_id -o gene_id_cds_sars.txt ./alignment/*_s.bam
+
+featureCounts -T 24 -p  -a /datasets/work/lw-project-airway/work/Data/genome_ref/STAR_index/sars_cov_2/Sars_cov_2.ASM985889v3.101.gtf -t exon -g gene_name -o PREDICT_sars2_gene_name_exon.txt ./alignment_GSM_sars2/*_s.bam
+featureCounts -T 24 -p  -a /datasets/work/lw-project-airway/work/Data/genome_ref/STAR_index/sars_cov_2/Sars_cov_2.ASM985889v3.101.gtf -t gene -g gene_name -o PREDICT_sars2_gene_name_gene.txt ./alignment_GSM_sars2/*_s.bam
+featureCounts -T 24 -p  -a /datasets/work/lw-project-airway/work/Data/genome_ref/STAR_index/sars_cov_2/Sars_cov_2.ASM985889v3.101.gtf -t CDS -g gene_name -o PREDICT_sars2_gene_name_CDS.txt ./alignment_GSM_sars2/*_s.bam
+#featureCounts -T 24 -p -B --countReadPairs -a /datasets/work/lw-project-airway/work/Data/genome_ref/STAR_index/sars_cov_2_allreads/sars_cov_2_allreads.gtf -t CDS -g gene_name -o gene_id_cds_sars.txt ./alignment/*_s.bam
+
